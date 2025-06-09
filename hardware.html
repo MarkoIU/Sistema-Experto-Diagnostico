@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Asistente de Diagnóstico de Hardware</title>
+  <link rel="icon" href="Images/PC Troubleshooting.png" type="image/x-icon">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <h2>Asistente de Diagnóstico de Hardware</h2>
+
+    <div id="question-section">
+      <p id="question"></p>
+      <p id="hint" class="hint"></p>
+
+      <div class="image-frame">
+        <img id="hint-image" src="Images/Start-up.gif" alt="Imagen de pista">
+      </div>
+
+      <button onclick="answer('yes')">Sí</button>
+      <button onclick="answer('no')">No</button>
+      <button onclick="showWhy()">¿Por qué?</button>
+
+      <div id="explanation-box" style="display: none; margin-top: 20px;">
+        <div class="solution-container">
+          <h3>Explicación</h3>
+          <p id="explanation-text"></p>
+          <button onclick="closeExplanation()">Cerrar</button>
+        </div>
+      </div>
+    </div>
+
+   <div id="result-section" style="display: none;">
+      <div class="solution-container">
+        <h3>Acción Recomendada</h3>
+        <p id="recommendation"></p>
+      </div>
+      
+      <div class="image-frame">
+        <img id="result-image" src="" alt="Imagen del resultado" style="display: none;">
+      </div>
+ 
+      <div class="conclusion-container">
+        <h3>Conclusión</h3>
+        <p id="conclusion"></p>
+      </div>
+
+      <button onclick="showHow()">¿Cómo?</button>
+      
+      <div id="how-section" class="conclusion-container" style="display: none;">
+        <h3>Cómo se Concluyó</h3>
+        <p id="how-text"></p>
+      </div>
+
+      <button onclick="location.reload()">Reiniciar</button>
+    </div>
+
+    <a href="troubleshoot.html" class="back-button">← Volver</a>
+  </div>
+
+  <script>
+    const questions = [
+      {
+        q: "¿Ves alguna luz indicadora de encendido en tu PC o escuchas el ventilador de la placa base girar al presionar el botón de encendido?",
+        hint: "💡 Verifica las luces LED y la actividad del ventilador de la placa base después de presionar el botón de encendido.",
+        yes: "Procede al diagnóstico de pantalla",
+        image: "Images/Start-up.gif",
+        no: {
+          rec: "Verifica el estado físico de la Fuente de Alimentación (PSU).",
+          con: "La PC no enciende",
+          how: "Porque respondiste 'No' y no hay indicios de energía, el sistema concluye que la PC no está encendiendo y sospecha de una falla de hardware.",
+        },
+        why: "Para determinar si el sistema recibe energía en absoluto."
+      },
+      {
+        q: "¿El ventilador de la Fuente de Alimentación (PSU) gira durante la prueba del clip?",
+        hint: "💡 Puentea los pines verde y negro con un clip y revisa el ventilador de la fuente de alimentación (PSU).",
+        yes: "Verifica la salida de video integrada y de la GPU",
+        image: "Images/PaperClipTest.gif",
+        no: {
+          rec: "Reemplaza la Fuente de Alimentación (PSU).",
+          con: "La Fuente de Alimentación (PSU) ha fallado, lo que significa que está defectuosa.",
+          resultImage: "Images/replacePSU.jpg",
+          how: "Respondiste 'No', lo que indica que la fuente falló en ambas pruebas, por lo tanto se concluye que está defectuosa y debe reemplazarse.",
+        },
+        why: "Para verificar si la Fuente de Alimentación (PSU) está funcionando."
+      },
+      {
+        q: "¿El ventilador de la PSU gira pero no hay salida de video?",
+        hint: "💡 Confirma que el ventilador se mueva pero no haya imagen tras conectar la PSU a la placa base.",
+        yes: "Verifica la salida de video integrada",
+        image: "Images/noDisplay.jpg",
+        no: {
+          rec: "Inspecciona la placa base por daños o cortos.",
+          con: "Una placa base dañada o en corto puede causar el problema de video aunque la PSU funcione.",
+          resultImage: "Images/damagedMotherboard.jpg",
+          how: "Respondiste 'No', indicando que la fuente funciona pero no hay imagen, así que el sistema sospecha de fallas en la placa base."
+        },
+        why: "Para ver si el sistema arranca sin salida de video, lo que indicaría un problema en el trayecto de imagen."
+      },
+      {
+        q: "¿El sistema da salida de video cuando se retira la GPU?",
+        hint: "💡 Retira la GPU y conecta el monitor al puerto de video de la placa base.",
+        image: "Images/removeGPU.jpg",
+        yes: {
+          rec: "Reemplaza la Tarjeta Gráfica (GPU).",
+          con: "La salida de video integrada funciona",
+          how: "Respondiste 'Sí', confirmando que la salida integrada funciona al retirar la GPU, lo que indica que la GPU está defectuosa."
+        },
+        no: "Verifica monitor y cables",
+        why: "Para comprobar si la salida integrada funciona sin la GPU."
+      },
+      {
+        q: "¿Está encendida la luz de encendido del monitor?",
+        hint: "💡 Revisa si la luz de encendido del monitor está iluminada.",
+        yes: "Verifica el cable y la fuente de entrada",
+        image: "Images/monitorLED.png",
+        no: {
+          rec: "Verifica la alimentación del monitor y las conexiones de los cables.",
+          con: "El monitor no tiene energía",
+          how: "Tu respuesta 'No' indica que el monitor no tiene energía, por lo que el sistema sospecha de una falla en el monitor o el cable."
+        },
+        why: "Para asegurarse de que el monitor se encienda."
+      },
+      {
+        q: "¿Está conectado correctamente el cable de video y seleccionada la fuente de entrada adecuada?",
+        hint: "💡 Revisa ambos extremos del cable y la configuración de entrada del monitor para asegurar la fuente correcta.",
+        yes: "Verifica conexión de la GPU",
+        image: "Images/monitorInput.gif",
+        no: {
+          rec: "Reconecta el cable y selecciona la fuente de entrada correcta.",
+          con: "Entrada incorrecta o cable flojo",
+          resultImage: "Images/reconnectHDMI.jpg",
+          how: "Debido a que el cable estaba suelto o la fuente incorrecta, el sistema concluye que eso causó el problema de 'sin señal'."
+        },
+        why: "Para confirmar que el monitor está configurado correctamente para recibir señal."
+      },
+      {
+        q: "¿El monitor muestra 'Sin señal' al conectarlo a otra PC?",
+        hint: "💡 Prueba el monitor en otra computadora que funcione.",
+        yes: {
+          rec: "Reemplaza el monitor.",
+          con: "El monitor está defectuoso",
+          how: "Como el monitor muestra 'Sin señal' en otra PC, el sistema determina que el monitor está defectuoso."
+        },
+        no: "Verifica el asiento de la GPU",
+        why: "Para descartar si el problema es del monitor."
+      },
+      {
+        q: "¿Está correctamente asentada la GPU y conectada con su cable de alimentación PCIe?",
+        hint: "💡 Asegúrate de que la GPU esté completamente insertada en su ranura y que el cable de alimentación esté conectado.",
+        yes: "Escucha código de pitidos",
+        no: {
+          rec: "Reasienta la GPU y reconecta el cable de alimentación.",
+          con: "La GPU no está bien conectada",
+          how: "Tu respuesta 'No' indica que la GPU no está asentada o alimentada, lo que puede impedir la salida de video."
+        },
+        why: "Para comprobar si hay problemas físicos con la GPU que impidan la salida de video."
+      },
+      {
+        q: "¿Escuchas algún código de pitidos al encender?",
+        hint: "💡 Los códigos de pitidos pueden indicar fallas de RAM, CPU o GPU. Consulta el manual de la BIOS.",
+        yes: {
+          rec: "Consulta el manual de tu placa base para interpretar el código de pitidos.",
+          con: "Código de pitidos detectado",
+          how: "Respondiste 'Sí', confirmando que se escucha una secuencia de pitidos, así que el sistema te refiere a la documentación de la BIOS."
+        },
+        no: {
+          rec: "Inspecciona la placa base por daños visibles.",
+          con: "Sin pitidos y sin imagen",
+          how: "Respondiste 'No', lo que indica que no hay respuesta POST. El sistema sospecha de falla en la placa base o falta de arranque."
+        },
+        why: "Para determinar si el POST (autoprueba de encendido) detecta problemas de hardware."
+      }
+    ];
+
+    let step = 0;
+
+    function answer(response) {
+      const question = questions[step];
+      const recommendation = document.getElementById('recommendation');
+      const conclusion = document.getElementById('conclusion');
+      const howText = document.getElementById('how-text');
+
+      if (typeof question[response] === 'object') {
+        recommendation.textContent = question[response].rec;
+        conclusion.textContent = question[response].con;
+        howText.textContent = question[response].how || '';
+        
+        document.getElementById('how-section').style.display = 'none';
+
+        const resultImage = document.getElementById('result-image');
+        if (question[response].resultImage) {
+          resultImage.src = question[response].resultImage;
+          resultImage.style.display = 'block';
+        } else {
+          resultImage.style.display = 'none';
+        }
+
+        document.getElementById('question-section').style.display = 'none';
+        document.getElementById('result-section').style.display = 'block';
+      } else if (typeof question[response] === 'string') {
+        step++;
+        updateQuestion();
+      }
+    }
+
+    function updateQuestion() {
+      const q = questions[step];
+      document.getElementById('question').textContent = q.q;
+      document.getElementById('hint').textContent = q.hint || '';
+      document.getElementById('hint-image').src = q.image || '';
+      document.getElementById('hint-image').alt = `Paso ${step + 1}`;
+    }
+
+    function showWhy() {
+      const explanationText = document.getElementById('explanation-text');
+      explanationText.textContent = questions[step].why || "Sin explicación disponible.";
+      document.getElementById('explanation-box').style.display = 'block';
+    }
+
+    function showHow() {
+      document.getElementById('how-section').style.display = 'block';
+    }
+
+    function closeExplanation() {
+      document.getElementById('explanation-box').style.display = 'none';
+    }
+
+    window.onload = updateQuestion;
+  </script>
+</body>
+</html>

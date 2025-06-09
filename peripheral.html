@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Diagnóstico de Periféricos</title>
+  <link rel="icon" href="Images/PC Troubleshooting.png" type="image/x-icon">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <h2>Asistente de Diagnóstico de Periféricos</h2>
+
+    <div id="question-section">
+      <p id="question"></p>
+      <p id="hint" class="hint"></p>
+
+      <div class="image-frame">
+        <img id="hint-image" src="Images/printer-start.png" alt="Imagen de ayuda">
+      </div>
+
+      <button onclick="answer('yes')">Sí</button>
+      <button onclick="answer('no')">No</button>
+      <button onclick="showWhy()">¿Por qué?</button>
+
+      <div id="explanation-box" style="display: none; margin-top: 20px;">
+        <div class="solution-container">
+          <h3>Explicación</h3>
+          <p id="explanation-text"></p>
+          <button onclick="closeExplanation()">Cerrar</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="result-section" style="display: none;">
+      <div class="solution-container">
+        <h3>Acción Recomendada</h3>
+        <p id="recommendation"></p>
+      </div>
+      
+      <div class="image-frame">
+        <img id="result-image" src="" alt="Imagen del resultado" style="display: none;">
+      </div>
+
+      <div class="conclusion-container">
+        <h3>Conclusión</h3>
+        <p id="conclusion"></p>
+      </div>
+
+      <button onclick="showHow()">¿Cómo se concluyó?</button>
+
+      <div id="how-section" class="conclusion-container" style="display: none;">
+        <h3>Cómo se Concluyó</h3>
+        <p id="how-text"></p>
+      </div>
+
+      <button onclick="location.reload()">Reiniciar</button>
+    </div>
+
+    <a href="troubleshoot.html" class="back-button">← Volver</a>
+  </div>
+
+  <script>
+    const questions = [
+      {
+        q: "¿Los trabajos de impresión están atascados en la cola o la impresora aparece como 'sin conexión' a pesar de estar encendida?",
+        hint: "💡 Verifica la cola de impresión y asegúrate de que la impresora esté en línea en la configuración del sistema.",
+        image: "Images/printerQueue.png",
+        yes: "¿El Administrador de dispositivos muestra 'Dispositivo desconocido' o errores como el código 28 o 39?",
+        no: {
+          rec: "La impresora parece estar conectada y lista.",
+          con: "Sin problemas de cola ni estado fuera de línea.",
+          how: "Respondiste 'No', lo que indica que la impresora está reconocida e inactiva. Procede a probar la impresión si aún no lo has hecho."
+        },
+        why: "Para determinar si el sistema está enviando trabajos a la impresora y si esta es reconocida."
+      },
+      {
+        q: "¿El Administrador de dispositivos muestra 'Dispositivo desconocido' o errores como el código 28 o 39?",
+        hint: "💡 Abre el Administrador de dispositivos y revisa la impresora en 'Impresoras' o 'Dispositivos desconocidos'.",
+        image: "Images/error28.png",
+        yes: "¿Has reinstalado manualmente el controlador de la impresora desde la página oficial?",
+        no: {
+          rec: "El controlador parece estar instalado correctamente. Procede a verificar la conexión USB.",
+          con: "El controlador parece funcional.",
+          how: "Como respondiste 'No', el problema podría estar relacionado con el hardware."
+        },
+        why: "Para verificar si el problema está relacionado con el controlador."
+      },
+      {
+        q: "¿Has reinstalado manualmente el controlador de la impresora desde la página oficial?",
+        hint: "💡 Descarga el controlador más reciente desde la página de soporte del fabricante e instálalo.",
+        image: "Images/Printerdriver.png",
+        yes: "¿La impresora sigue sin imprimir después de reinstalar el controlador?",
+        no: {
+          rec: "La reinstalación del controlador resolvió el problema.",
+          con: "Problema con el controlador resuelto.",
+          how: "Respondiste 'No', lo que indica que la reinstalación funcionó."
+        },
+        why: "Para confirmar si una instalación nueva del controlador resuelve el problema."
+      },
+      {
+        q: "¿La impresora sigue sin imprimir después de reinstalar el controlador?",
+        hint: "💡 Intenta imprimir una página de prueba después de la reinstalación.",
+        image: "Images/TestPage.png",
+        yes: "¿La impresora funciona si la conectas a otro puerto USB en el mismo PC usando el mismo cable?",
+        no: {
+          rec: "La impresora ahora funciona tras la reinstalación.",
+          con: "La reinstalación del controlador resolvió el problema.",
+          how: "Respondiste 'No', por lo que el problema se resolvió con la reinstalación."
+        },
+        why: "Para verificar si el problema persiste después de arreglar el controlador."
+      },
+      {
+        q: "¿La impresora funciona si la conectas a otro puerto USB en el mismo PC con el mismo cable?",
+        hint: "💡 Desconecta del puerto actual y usa otro diferente en el mismo equipo.",
+        image: "Images/printerUSBPort.jpg",
+        yes: {
+          rec: "Reemplaza o evita usar el puerto USB defectuoso.",
+          con: "Puerto USB defectuoso identificado.",
+          resultImage: "Images/otherUSBPort.jpg",
+          how: "Respondiste 'Sí'. El puerto original está defectuoso."
+        },
+        no: "¿La impresora funciona con otro cable USB?",
+        why: "Para aislar el problema al puerto USB."
+      },
+      {
+        q: "¿La impresora funciona con otro cable USB?",
+        hint: "💡 Sustituye el cable por uno que sepas que funciona.",
+        image: "Images/printerCable.jpg",
+        yes: {
+          rec: "Reemplaza el cable USB original.",
+          con: "Cable USB defectuoso identificado.",
+          resultImage: "Images/usbPrinterCable.jpg",
+          how: "Respondiste 'Sí'. El cable está dañado y debe reemplazarse."
+        },
+        no: "¿La impresora funciona si la conectas a otro PC con el mismo sistema operativo y controladores?",
+        why: "Para determinar si el problema está en el cable USB."
+      },
+      {
+        q: "¿La impresora funciona si la conectas a otro PC con el mismo sistema operativo y controladores?",
+        hint: "💡 Prueba la impresora en otra computadora con configuración similar.",
+        image: "Images/printerOtherPC.png",
+        yes: {
+          rec: "Verifica el servicio de cola de impresión de Windows (services.msc).",
+          con: "Posible problema con el servicio de cola.",
+          resultImage: "Images/printerSpooler.png",
+          how: "Respondiste 'Sí', lo que indica que el problema está en el sistema operativo o software del PC original."
+        },
+        no: {
+          rec: "La impresora parece tener una falla de hardware que requiere evaluación técnica.",
+          con: "La impresora está defectuosa.",
+          how: "Respondiste 'No'. Se confirma que el problema es de hardware.",
+          resultImage: "Images/faultyPrinter.png"
+        },
+        why: "Para confirmar si el problema es físico de la impresora."
+      }
+    ];
+
+    let step = 0;
+
+    function answer(response) {
+      const question = questions[step];
+      const recommendation = document.getElementById('recommendation');
+      const conclusion = document.getElementById('conclusion');
+      const howText = document.getElementById('how-text');
+
+      if (typeof question[response] === 'object') {
+        recommendation.textContent = question[response].rec;
+        conclusion.textContent = question[response].con;
+        howText.textContent = question[response].how || '';
+        
+        document.getElementById('how-section').style.display = 'none';
+
+        const resultImage = document.getElementById('result-image');
+        if (question[response].resultImage) {
+          resultImage.src = question[response].resultImage;
+          resultImage.style.display = 'block';
+        } else {
+          resultImage.style.display = 'none';
+        }
+
+        document.getElementById('question-section').style.display = 'none';
+        document.getElementById('result-section').style.display = 'block';
+      } else if (typeof question[response] === 'string') {
+        step++;
+        updateQuestion();
+      }
+    }
+
+    function updateQuestion() {
+      const q = questions[step];
+      document.getElementById('question').textContent = q.q;
+      document.getElementById('hint').textContent = q.hint || '';
+      document.getElementById('hint-image').src = q.image || '';
+      document.getElementById('hint-image').alt = `Paso ${step + 1}`;
+    }
+
+    function showWhy() {
+      const explanationText = document.getElementById('explanation-text');
+      explanationText.textContent = questions[step].why || "No hay explicación disponible.";
+      document.getElementById('explanation-box').style.display = 'block';
+    }
+
+    function showHow() {
+      document.getElementById('how-section').style.display = 'block';
+    }
+
+    function closeExplanation() {
+      document.getElementById('explanation-box').style.display = 'none';
+    }
+
+    window.onload = updateQuestion;
+  </script>
+</body>
+</html>

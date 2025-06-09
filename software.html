@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Diagnóstico de Software</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" href="Images/PC Troubleshooting.png" type="image/x-icon">
+</head>
+<body>
+  <div class="container">
+    <h2>Asistente de Diagnóstico de Software</h2>
+
+    <div id="question-section">
+      <p id="question"></p>
+      <p id="hint" class="hint"></p>
+
+      <div class="image-frame">
+        <img id="hint-image" src="" alt="Imagen de pista">
+      </div>
+
+      <button onclick="answer('yes')">Sí</button>
+      <button onclick="answer('no')">No</button>
+      <button onclick="showWhy()">¿Por qué?</button>
+
+      <div id="explanation-box" style="display: none; margin-top: 20px;">
+        <div class="solution-container">
+          <h3>Explicación</h3>
+          <p id="explanation-text"></p>
+          <button onclick="closeExplanation()">Cerrar</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="result-section" style="display: none;">
+      <div class="solution-container">
+        <h3>Acción Recomendada</h3>
+        <p id="recommendation"></p>
+      </div>
+      
+      <div class="image-frame">
+        <img id="result-image" src="" alt="Imagen del resultado" style="display: none;">
+      </div>
+
+      <div class="conclusion-container">
+        <h3>Conclusión</h3>
+        <p id="conclusion"></p>
+      </div>
+
+      <button onclick="showHow()">¿Cómo?</button>
+
+      <div id="how-section" class="conclusion-container" style="display: none;">
+        <h3>Cómo se Concluyó</h3>
+        <p id="how-text"></p>
+      </div>
+
+      <button onclick="location.reload()">Reiniciar</button>
+    </div>
+
+    <a href="troubleshoot.html" class="back-button">← Volver</a>
+  </div>
+
+  <script>
+    const questions = [
+      {
+        q: "¿Tu PC se reinicia aleatoriamente o se congela por más de 60 segundos?",
+        hint: "💡 Ejemplo: Tu PC se reinicia sola o se congela más de un minuto sin responder.",
+        image: "Images/Bbc Oops GIF by Mystic.gif",
+        yes: "Ejecutar diagnóstico de RAM",
+        no: {
+          rec: "No se detectaron congelamientos.",
+          con: "El sistema parece estable.",
+          how: "Se asume estabilidad ya que no reportaste reinicios o congelamientos."
+        },
+        why: "Para identificar si el sistema muestra signos de inestabilidad, como congelamientos o reinicios."
+      },
+      {
+        q: "¿La herramienta de diagnóstico de RAM falló o reportó errores?",
+        hint: "💡 Consejo: Ejecuta la herramienta 'Diagnóstico de memoria de Windows' desde el menú Inicio o escribiendo 'mdsched.exe'.",
+        image: "Images/ram-failure.jpg",
+        yes: {
+          rec: "Reemplaza la RAM – Abre tu PC e instala nuevos módulos de memoria.",
+          con: "Fallo de RAM detectado.",
+          resultImage: "Images/replaceRAM.jpg",
+          how: "Como respondiste 'Sí' y la prueba falló o mostró errores, se concluye que la RAM está defectuosa."
+        },
+        no: "Verificar uso de CPU – Abre el Administrador de Tareas",
+        why: "Para determinar si la RAM es la causa de los problemas."
+      },
+      {
+        q: "¿El uso de CPU está por encima del 90% mientras que la memoria está por debajo del 80%?",
+        hint: "💡 Consejo: Abre el Administrador de Tareas (Ctrl + Shift + Esc) y verifica CPU y RAM en la pestaña 'Procesos'.",
+        image: "Images/CPU-Usage.png",
+        yes: {
+          rec: "Finaliza tareas de alto consumo – Usa el Administrador de Tareas para cerrar aplicaciones pesadas.",
+          con: "Aplicaciones usando demasiada CPU.",
+          resultImage: "Images/endTask.png",
+          how: "Tu respuesta indica alta carga de CPU con memoria normal. Esto sugiere que hay apps intensivas en uso."
+        },
+        no: "Continuar con análisis de malware",
+        why: "Para verificar si el cuello de botella es el procesador."
+      },
+      {
+        q: "¿El análisis de malware no encontró amenazas ni procesos sospechosos?",
+        hint: "💡 Consejo: Usa Windows Defender o un antivirus confiable para un escaneo completo.",
+        image: "Images/noVirus.png",
+        yes: "Ejecutar comprobación de disco – Comando 'chkdsk /f' en CMD",
+        no: {
+          rec: "Elimina el malware con software antivirus o técnicas manuales.",
+          con: "Malware detectado.",
+          resultImage: "Images/malwareDetected.png",
+          how: "Respondiste 'No', indicando que se encontró malware. Se concluye que afecta el rendimiento."
+        },
+        why: "Para descartar virus o programas maliciosos en segundo plano."
+      },
+      {
+        q: "¿La comprobación de disco reportó errores?",
+        hint: "💡 Consejo: Ejecuta 'chkdsk /f' en CMD (modo administrador).",
+        image: "Images/check-Disk.png",
+        yes: {
+          rec: "Reemplaza el disco dañado – Haz respaldo y cambia el HDD o SSD.",
+          con: "Fallo de disco detectado.",
+          resultImage: "Images/replaceHardDisk.jpg",
+          how: "Se seleccionó 'Sí' y se reportaron errores. Se concluye que hay fallo en el almacenamiento."
+        },
+        no: "Verificar temperatura de CPU/GPU",
+        why: "Para saber si un disco defectuoso está causando lentitud o errores."
+      },
+      {
+        q: "¿La temperatura del CPU o GPU supera los 90℃ bajo carga?",
+        hint: "💡 Consejo: Usa Task Manager, HWMonitor o GPU-Z para revisar temperaturas.",
+        image: "Images/tempCheck.png",
+        yes: {
+          rec: "Limpia los ventiladores y aplica pasta térmica.",
+          con: "Problema de sobrecalentamiento.",
+          resultImage: "Images/cleanThermalFan.png",
+          how: "Respondiste 'Sí', lo que indica temperatura crítica. Se concluye que hay sobrecalentamiento."
+        },
+        no: {
+          rec: "Actualiza los drivers de GPU, placa madre y BIOS.",
+          con: "Problema de controladores.",
+          resultImage: "Images/updateDrivers.jpg",
+          how: "Temperaturas normales. Se descarta sobrecalentamiento y se sospecha de drivers."
+        },
+        why: "Para detectar sobrecalentamiento, que puede causar apagones o bajo rendimiento."
+      }
+    ];
+
+    let step = 0;
+
+    function answer(response) {
+      const question = questions[step];
+      const recommendation = document.getElementById('recommendation');
+      const conclusion = document.getElementById('conclusion');
+      const howText = document.getElementById('how-text');
+
+      if (typeof question[response] === 'object') {
+        recommendation.textContent = question[response].rec;
+        conclusion.textContent = question[response].con;
+        howText.textContent = question[response].how || '';
+        
+        document.getElementById('how-section').style.display = 'none';
+
+        const resultImage = document.getElementById('result-image');
+        if (question[response].resultImage) {
+          resultImage.src = question[response].resultImage;
+          resultImage.style.display = 'block';
+        } else {
+          resultImage.style.display = 'none';
+        }
+
+        document.getElementById('question-section').style.display = 'none';
+        document.getElementById('result-section').style.display = 'block';
+      } else if (typeof question[response] === 'string') {
+        step++;
+        updateQuestion();
+      }
+    }
+
+    function updateQuestion() {
+      const q = questions[step];
+      document.getElementById('question').textContent = q.q;
+      document.getElementById('hint').textContent = q.hint || '';
+      document.getElementById('hint-image').src = q.image || '';
+      document.getElementById('hint-image').alt = `Paso ${step + 1}`;
+    }
+
+    function showWhy() {
+      const explanationText = document.getElementById('explanation-text');
+      explanationText.textContent = questions[step].why || "No hay explicación disponible.";
+      document.getElementById('explanation-box').style.display = 'block';
+    }
+
+    function showHow() {
+      document.getElementById('how-section').style.display = 'block';
+    }
+
+    function closeExplanation() {
+      document.getElementById('explanation-box').style.display = 'none';
+    }
+
+    window.onload = updateQuestion;
+  </script>
+</body>
+</html>
